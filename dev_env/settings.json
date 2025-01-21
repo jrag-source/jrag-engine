@@ -1,0 +1,5 @@
+{
+   "security.workspace.trust.enabled": false,
+   "editor.inlayHints.enabled": "off",
+   "window.titleBarStyle": "custom"
+}

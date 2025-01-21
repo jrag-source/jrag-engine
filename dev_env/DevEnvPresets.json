@@ -1,0 +1,37 @@
+{
+   "version": 10,
+   "include": [
+      "../ProjectPresets.json"
+   ],
+   "configurePresets": [
+      {
+         "name": "devenv-debug",
+         "inherits": "base",
+         "displayName": "Container Debug Config",
+         "description": "Necessary configuration to build project in debug mode within the provided Docker container",
+         "binaryDir": "build/${presetName}",
+         "toolchainFile": "~/project-dependencies/build/Debug/generators/conan_toolchain.cmake"
+      },
+      {
+         "name": "devenv-release",
+         "inherits": "base",
+         "displayName": "Container Release Config",
+         "description": "Necessary configuration to build project in release mode within the provided Docker container",
+         "binaryDir": "build/${presetName}",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release"
+         },
+         "toolchainFile": "~/project-dependencies/build/Release/generators/conan_toolchain.cmake"
+      }
+   ],
+   "buildPresets": [
+      {
+         "name": "devenv-debug",
+         "configurePreset": "devenv-debug"
+      },
+      {
+         "name": "devenv-release",
+         "configurePreset": "devenv-release"
+      }
+   ]
+}

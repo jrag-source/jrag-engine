@@ -1,0 +1,38 @@
+---
+# Disabled checks:
+# bugprone-easily-swappable-parameters: Valid warning, but solutions are generally too awkward/intrusive
+# modernize-use-designated-initializers: Causes clangd crash. See: https://github.com/llvm/llvm-project/issues/113652
+
+Checks: "*,
+        -abseil-*,
+        -altera-*,
+        -android-*,
+        -fuchsia-*,
+        -google-*,
+        -llvm*,
+        -zircon-*,
+        -bugprone-easily-swappable-parameters,
+        -modernize-use-designated-initializers,
+"
+
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     none
+
+CheckOptions:
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: 'x|y|z|it'
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: 'x|y|z'
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: hicpp-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
+    value: true
+  - key: hicpp-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
+    value: true
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true
+
+...

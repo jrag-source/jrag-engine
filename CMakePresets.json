@@ -1,0 +1,7 @@
+{
+   "version": 10,
+   "include": [
+      "ProjectPresets.json",
+      "dev_env/DevEnvPresets.json"
+   ]
+}
