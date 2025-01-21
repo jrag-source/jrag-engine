@@ -1,5 +1,6 @@
 {
    "security.workspace.trust.enabled": false,
    "editor.inlayHints.enabled": "off",
-   "window.titleBarStyle": "custom"
+   "window.titleBarStyle": "custom",
+   "git.autofetch": true
 }
