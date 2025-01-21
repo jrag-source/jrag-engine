@@ -20,6 +20,7 @@ docker run --rm --interactive --tty \
    --volume .:/home/ubuntu/project \
    --workdir /home/ubuntu/project \
    --volume ~/.gitconfig:/home/ubuntu/.gitconfig:ro \
+   --volume ~/.ssh:/home/ubuntu/.ssh:ro \
    --env DISPLAY=$DISPLAY \
    --volume /tmp/.X11-unix:/tmp/.X11-unix:ro \
    --env XAUTHORITY=$XAUTHORITY \
