@@ -26,4 +26,5 @@ docker run --rm --interactive --tty \
    --env XAUTHORITY=$XAUTHORITY \
    --volume $XAUTHORITY:$XAUTHORITY:ro \
    --volume /dev/dri:/dev/dri:ro \
+   --device /dev/dri/card1:/dev/dri/card1 \
    jrag_env
