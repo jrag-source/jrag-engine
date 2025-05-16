@@ -4,6 +4,7 @@ target_link_libraries(jrag
    INTERFACE
       jrag::app_state
       jrag::asset
+      jrag::collision
       jrag::engine
       jrag::input
       jrag::math
@@ -13,6 +14,7 @@ target_link_libraries(jrag
 
 add_subdirectory(app_state)
 add_subdirectory(asset)
+add_subdirectory(collision)
 add_subdirectory(engine)
 add_subdirectory(input)
 add_subdirectory(math)
