@@ -56,4 +56,32 @@ namespace jrag::math
    {
       return vec / scalar;
    }
+
+   template<typename NumType>
+   constexpr auto operator+=(vector2<NumType> & lhs, vector2<NumType> const rhs) noexcept -> vector2<NumType> &
+   {
+      lhs = lhs + rhs;
+      return lhs;
+   }
+
+   template<typename NumType>
+   constexpr auto operator-=(vector2<NumType> & lhs, vector2<NumType> const rhs) noexcept -> vector2<NumType> &
+   {
+      lhs = lhs - rhs;
+      return lhs;
+   }
+
+   template<typename NumType>
+   constexpr auto operator*=(vector2<NumType> & vec, NumType const scalar) noexcept -> vector2<NumType> &
+   {
+      vec = vec * scalar;
+      return vec;
+   }
+
+   template<typename NumType>
+   constexpr auto operator/=(vector2<NumType> & vec, NumType const scalar) noexcept -> vector2<NumType> &
+   {
+      vec = vec / scalar;
+      return vec;
+   }
 }

@@ -115,7 +115,7 @@ void game::logic_process(logic_tooling tooling, std::chrono::duration<float> con
    constexpr auto move_speed {200.0F};
 
    auto const displacement { move_dir * move_speed * dt.count() };
-   m_player.position = m_player.position + displacement;
+   m_player.position += displacement;
    // std::println("world_pos: {}, {}", m_player.world_pos.x, m_player.world_pos.y);
 
    // constexpr auto medkit_speed { 200.0f };
@@ -131,7 +131,7 @@ void game::logic_process(logic_tooling tooling, std::chrono::duration<float> con
    //    m_medkit.move_dir.x = -1;
    // }
 
-   std::println("blah");
+   // std::println("blah");
 
    m_world.handle_collisions();
 
