@@ -1,19 +1,26 @@
 #pragma once
 
-#include <functional>
+#include <string>
 #include <vector>
 
+#include <math/vector2.hpp>
+
+#include "collider.hpp"
+
 namespace jrag::collision
-{
-   struct collider;
-   
+{  
    class map
    {
+      template<typename NumType>
+      using vector2 = math::vector2<NumType>;
+      
       public:
-         auto add_collider(collider & collider) -> void;
+         auto create_collider(std::string uuid, vector2<float> position, vector2<float> size) -> void;
+         [[nodiscard]] auto get_collider(std::string_view collider_id) -> collider &;
          auto handle_collisions() -> void;
 
       private:
-         std::vector<std::reference_wrapper<collider>> m_colliders;
+         std::vector<collider> m_colliders;
+         std::vector<std::string> m_collider_ids;
    };
 }

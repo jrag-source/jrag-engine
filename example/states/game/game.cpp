@@ -12,6 +12,7 @@
 
 #include <cmath>
 #include <print>
+#include <random>
 
 #include <collision/collider.hpp>
 #include <collision/map.hpp>
@@ -48,9 +49,76 @@ namespace
       return sprite;
    }
 
-   jrag::collision::collider m_player{.position = {0.0F, 0.0F}, .size = {50.0F, 50.0F}};
-   jrag::collision::collider m_medkit{.position = {200.0F, 200.0F}, .size = {50.0F, 50.0F}};
-   jrag::collision::map m_world{};
+   auto get_uuid() -> std::string
+   {
+      // TODO: Add uuid functionality in its own module
+      // TODO: Make uuid generator seedable, if not seeded, then defaults to using a truly random seed.
+      static std::random_device dev;
+      static std::mt19937 rng(dev());
+
+      std::uniform_int_distribution<int> dist(0, 15);
+
+      const char *v = "0123456789abcdef";
+      const bool dash[] = { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0 };
+
+      std::string res;
+      for (int i = 0; i < 16; i++) {
+         if (dash[i]) res += "-";
+         res += v[dist(rng)];
+         res += v[dist(rng)];
+      }
+      
+      return res;
+   }
+
+   auto const player_collider_id {get_uuid()};
+   auto const medkit_collider_id {get_uuid()};
+
+   // jrag::collision::collider m_player{.position = {50.0F, 50.0F}, .size = {50.0F, 50.0F}};
+   // jrag::collision::collider m_medkit{.position = {200.0F, 200.0F}, .size = {50.0F, 50.0F}};
+
+   enum class tile_type : std::uint8_t
+   {
+      empty,
+      wall,
+      spike,
+
+      size,
+   };
+
+   template<typename tile_enum, unsigned long width, unsigned long height>
+   class logical_tilemap
+   {
+      public:
+         using row_t = std::array<tile_enum, width>;
+         using grid_t = std::array<row_t, height>;
+
+         explicit constexpr logical_tilemap(grid_t data)
+            : m_data{data}
+         {
+            static_assert(static_cast<unsigned int>(tile_enum::empty) == 0U, "tile_enum must define empty as its first tile type");
+         }
+
+         [[nodiscard]] auto get_iterable() const -> std::span<row_t const>
+         {
+            return m_data;
+         }
+      
+         private:
+            grid_t m_data;
+   };
+
+   constexpr logical_tilemap my_map
+   {
+      std::array{
+         std::array{tile_type::wall, tile_type::empty, tile_type::empty, tile_type::empty,},
+         std::array{tile_type::wall, tile_type::empty, tile_type::empty, tile_type::empty,},
+         std::array{tile_type::wall, tile_type::empty, tile_type::empty, tile_type::empty,},
+         std::array{tile_type::wall, tile_type::empty, tile_type::empty, tile_type::empty,},
+      }
+   };
+
+   using wowser = decltype(my_map);
 }
 
 game::game()
@@ -60,15 +128,40 @@ game::game()
    , m_medkit_sprite{make_medkit_sprite(m_medkit_texture)}
    , m_medkit_x_dir{1}
    , m_pause_state{}
+   , m_entities{}
+   , m_world{}
 {
-   m_world.add_collider(m_player);
-   m_world.add_collider(m_medkit);
+   m_world.create_collider(player_collider_id, {50.0F, 50.0F}, {50.0F, 50.0F});
+   m_world.create_collider(medkit_collider_id, {200.0F, 200.0F}, {50.0F, 50.0F});
+
+   jrag::math::vector2 position{0.0F, 0.0F};
+   jrag::math::vector2 const size{50.0F, 50.0F};
+   
+   for (auto const row : my_map.get_iterable())
+   {
+      for (auto const tile : row)
+      {
+         if (tile == tile_type::wall)
+         {  
+            m_entities.emplace_back(get_uuid());
+            m_world.create_collider(m_entities.back(), position, size);
+         }
+
+         position.x += size.x;
+      }
+
+      position.x = 0.0F;
+      position.y += size.y + 25.0F;
+   }
+
+   auto const & m_player {m_world.get_collider(player_collider_id)};
+   auto const & m_medkit {m_world.get_collider(medkit_collider_id)};
 
    m_goon_sprite.setOrigin(m_goon_sprite.getLocalBounds().getSize().x / 2, m_goon_sprite.getLocalBounds().getSize().y / 2);
-   m_goon_sprite.setScale(m_player.size.x / m_goon_sprite.getLocalBounds().width, m_player.size.y / m_goon_sprite.getLocalBounds().height);
+   m_goon_sprite.setScale(m_player.get_size().x / m_goon_sprite.getLocalBounds().width, m_player.get_size().y / m_goon_sprite.getLocalBounds().height);
 
    m_medkit_sprite.setOrigin(m_medkit_sprite.getLocalBounds().getSize().x / 2, m_medkit_sprite.getLocalBounds().getSize().y / 2);
-   m_medkit_sprite.setScale(m_medkit.size.x / m_medkit_sprite.getLocalBounds().width, m_medkit.size.y / m_medkit_sprite.getLocalBounds().height);
+   m_medkit_sprite.setScale(m_medkit.get_size().x / m_medkit_sprite.getLocalBounds().width, m_medkit.get_size().y / m_medkit_sprite.getLocalBounds().height);
 }
 
 game::~game() = default;
@@ -115,28 +208,12 @@ void game::logic_process(logic_tooling tooling, std::chrono::duration<float> con
    constexpr auto move_speed {200.0F};
 
    auto const displacement { move_dir * move_speed * dt.count() };
-   m_player.position += displacement;
-   // std::println("world_pos: {}, {}", m_player.world_pos.x, m_player.world_pos.y);
 
-   // constexpr auto medkit_speed { 200.0f };
+   auto & m_player {m_world.get_collider(player_collider_id)};
+   m_player.set_center(m_player.get_center() + displacement);
 
-   // auto const medkit_x_bounds { get_x_bounds(m_medkit) };
-
-   // if (medkit_x_bounds.first < 0.0f)
-   // {
-   //    m_medkit.move_dir.x = 1;
-   // }
-   // else if (medkit_x_bounds.second > 200.0F)
-   // {
-   //    m_medkit.move_dir.x = -1;
-   // }
-
-   // std::println("blah");
-
+   // std::println("process collisions");
    m_world.handle_collisions();
-
-   // jrag::math::vector2 const medkit_displacement { m_medkit.speed * m_medkit.move_dir.x * dt.count(), 0.0f };
-   // m_medkit.world_pos = m_medkit.world_pos + medkit_displacement;
 
    if (tooling.get_input_dispatcher().is_command_activating(Cmd::Shoot))
    {
@@ -158,32 +235,50 @@ void game::graphics_process(graphics_tooling tooling, float const)
 {
    auto & window{tooling.get_window()};
 
-   m_goon_sprite.setPosition(m_player.position.x, m_player.position.y);
-   m_medkit_sprite.setPosition(m_medkit.position.x, m_medkit.position.y);
+   auto const & m_player {m_world.get_collider(player_collider_id)};
+   auto const & m_medkit {m_world.get_collider(medkit_collider_id)};
 
-   // sf::View playerView{m_goon_sprite.getPosition() + (m_goon_sprite.getGlobalBounds().getSize() / 2.0f), window.getDefaultView().getSize()};
-   // playerView.zoom(0.5f);
-   // window.setView(playerView);
+   m_goon_sprite.setPosition(m_player.get_center().x, m_player.get_center().y);
+   m_medkit_sprite.setPosition(m_medkit.get_center().x, m_medkit.get_center().y);
+
+   sf::View playerView{m_goon_sprite.getPosition(), window.getDefaultView().getSize()};
+   playerView.zoom(0.5f);
+   window.setView(playerView);
 
    window.draw(m_goon_sprite);
 
-   sf::RectangleShape goon_rect{{m_player.size.x, m_player.size.y}};
+   sf::RectangleShape goon_rect{{m_player.get_size().x, m_player.get_size().y}};
    goon_rect.setOutlineColor(sf::Color::Red);
    goon_rect.setOutlineThickness(-5.0F);
    goon_rect.setFillColor(sf::Color::Transparent);
    goon_rect.setOrigin(goon_rect.getLocalBounds().getSize().x / 2, goon_rect.getLocalBounds().getSize().y / 2);
-   goon_rect.setPosition({m_player.position.x, m_player.position.y});
+   goon_rect.setPosition({m_player.get_center().x, m_player.get_center().y});
    window.draw(goon_rect);
 
    window.draw(m_medkit_sprite);
 
-   sf::RectangleShape medkit_rect{{m_medkit.size.x, m_medkit.size.y}};
+   sf::RectangleShape medkit_rect{{m_medkit.get_size().x, m_medkit.get_size().y}};
    medkit_rect.setOutlineColor(sf::Color::Red);
    medkit_rect.setOutlineThickness(-5.0F);
    medkit_rect.setFillColor(sf::Color::Transparent);
    medkit_rect.setOrigin(medkit_rect.getLocalBounds().getSize().x / 2, medkit_rect.getLocalBounds().getSize().y / 2);
-   medkit_rect.setPosition({m_medkit.position.x, m_medkit.position.y});
+   medkit_rect.setPosition({m_medkit.get_center().x, m_medkit.get_center().y});
    window.draw(medkit_rect);
+
+   for (std::string_view const entity_id : m_entities)
+   {
+      auto const & entity {m_world.get_collider(entity_id)};
+      
+      sf::RectangleShape entity_rect{{entity.get_size().x, entity.get_size().y}};
+      entity_rect.setOutlineColor(sf::Color::Yellow);
+      entity_rect.setOutlineThickness(-5.0F);
+      entity_rect.setFillColor(sf::Color::Transparent);
+      entity_rect.setOrigin(entity_rect.getLocalBounds().getSize().x / 2, entity_rect.getLocalBounds().getSize().y / 2);
+      entity_rect.setPosition({entity.get_center().x, entity.get_center().y});
+      window.draw(entity_rect);
+
+      // std::println("entity_rect pos: {{ {}, {} }}", entity_rect.getPosition().x, entity_rect.getPosition().y);
+   }
 }
 
 void game::on_enter()

@@ -7,6 +7,9 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
+#include <collision/collider.hpp>
+#include <collision/map.hpp>
+
 namespace sf
 {
    class RenderWindow;
@@ -36,5 +39,8 @@ namespace states
          int m_medkit_x_dir;
 
          pause m_pause_state;
+
+         std::vector<std::string> m_entities;
+         jrag::collision::map m_world{};
    };
 }
