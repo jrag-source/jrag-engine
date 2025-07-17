@@ -2,14 +2,13 @@
 
 #include "vector2.hpp"
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 
-#include <print>
-
 namespace jrag::math
 {
-    template<typename NumType, typename = typename std::enable_if_t<std::is_arithmetic_v<NumType>>>
+    template<typename NumType, typename = typename std::enable_if_t<std::is_signed_v<NumType>>>
     struct rect
     {
         vector2<NumType> position; // top left corner
@@ -26,39 +25,35 @@ namespace jrag::math
             position = center - (size / static_cast<NumType>(2));
         }
 
+        [[nodiscard]] constexpr auto get_area() const -> NumType
+        {
+            return size.x * size.y;
+        };
+
+        [[nodiscard]] constexpr auto get_intersection(rect<NumType> const other) const -> std::optional<rect<NumType>>
+        {
+            auto const rightmost_left {left() > other.left() ? left() : other.left()};
+            auto const leftmost_right {right() < other.right() ? right() : other.right()};
+            auto const horizontal_overlap {leftmost_right - rightmost_left};
+            if (horizontal_overlap <= static_cast<NumType>(0))
+            {
+                return std::nullopt;
+            }
+
+            auto const bottommost_top {top() > other.top() ? top() : other.top()};
+            auto const upmost_bottom {bottom() < other.bottom() ? bottom() : other.bottom()};
+            auto const vertical_overlap {upmost_bottom - bottommost_top};
+            if (vertical_overlap <= static_cast<NumType>(0))
+            {
+                return std::nullopt;
+            }
+
+            return std::optional<rect<NumType>>{std::in_place, vector2<NumType>{rightmost_left, bottommost_top}, vector2<NumType>{horizontal_overlap, vertical_overlap}};
+        }
+
         [[nodiscard]] constexpr auto is_intersecting(rect<NumType> const other) const -> bool
         {
-            static constexpr auto is_in_bounds = [] (auto const number, auto const bounds) -> bool
-            {
-                return number > bounds.first && number < bounds.second;
-            };
-
-            auto is_vertically_aligned = [this, other] () -> bool
-            {
-                auto have_same_x_bounds = [this, other] () -> bool
-                {
-                    return size.x == other.size.x && left() == other.left();
-                };
-
-                auto const [thinner, wider] {size.x < other.size.x ? std::pair{*this, other} : std::pair{other, *this}};
-                std::pair const horizontal_bounds {wider.left(), wider.right()};
-
-                return have_same_x_bounds() || is_in_bounds(thinner.left(), horizontal_bounds) || is_in_bounds(thinner.right(), horizontal_bounds);
-            };
-
-            auto is_horizontally_aligned = [this, other] () -> bool
-            {
-                auto have_same_y_bounds = [this, other] () -> bool
-                {
-                    return size.y == other.size.y && top() == other.top();
-                };
-                
-                auto const [shorter, taller] {size.y < other.size.y ? std::pair{*this, other} : std::pair{other, *this}};
-                std::pair const vertical_bounds {taller.top(), taller.bottom()};
-                return have_same_y_bounds() || is_in_bounds(shorter.bottom(), vertical_bounds) || is_in_bounds(shorter.top(), vertical_bounds);;
-            };
-
-            return is_vertically_aligned() && is_horizontally_aligned();
+            return get_intersection(other).has_value();
         } 
     };
 }

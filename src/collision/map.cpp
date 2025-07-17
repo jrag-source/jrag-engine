@@ -3,6 +3,7 @@
 
 #include <collision/collider.hpp>
 
+#include <algorithm>
 #include <print>
 #include <ranges>
 #include <cassert>
@@ -37,264 +38,57 @@ auto map::handle_collisions() -> void
 {
    auto entity_count{0Z};
 
+   struct collision_data
+   {
+      std::reference_wrapper<jrag::collision::collider> collider_a;
+      std::reference_wrapper<jrag::collision::collider> collider_b;
+      jrag::math::rect<float> collision_rect;
+   };
+   
+   std::vector<collision_data> collisions {};
+
    for (auto & collider : m_colliders)
    {
       entity_count += 1Z;
 
       for (auto & other_collider : m_colliders | std::views::drop(entity_count))
       {
-         if (collider.is_intersecting(other_collider))
+         auto const intersection {collider.get_bounding_rect().get_intersection(other_collider.get_bounding_rect())};
+         if (intersection.has_value())
          {
-            // std::println("collision!");
-
-            /*
-            Collision Logic:
-            1. Get direction of dynamic collider's movement collider.get_center() - collider.get_old_center()
-            2. Determine general direction, right, up_right, up, up_left, left, down_left, down, down_right
-            3. If right, up, left, or down, then the collision_side is just that.
-            4. If diagonal, then pick corresponding corner, and get vector to static collider's matching opposite corner.
-            e.g: If down_left, then compare collider's bottom_left corner to other's top_right corner.
-            5. Compare movement vector to corner vector. Depending on what side of the corner vector the movement vector lies,
-            we can determine the collision_side.
-            */
-
-            auto normalize_vector = [] (jrag::math::vector2<float> const vec) -> jrag::math::vector2<float>
-            {
-               if (vec.x == 0.0F && vec.y == 0.0F)
-               {
-                  return {0.0F, 0.0F};
-               }
-               
-               auto const x_sqrd {vec.x * vec.x};
-               auto const y_sqrd {vec.y * vec.y};
-               
-               return vec / std::sqrt(x_sqrd + y_sqrd);
-            };
-
-            auto const move_direction {normalize_vector(collider.get_center() - collider.get_old_center())};
-
-            enum class general_direction : std::uint8_t
-            {
-               right,
-               up_right,
-               up,
-               up_left,
-               left,
-               down_left,
-               down,
-               down_right,
-            };
-
-            auto general_dir {general_direction::right};
-
-            // if(move_direction.x == 0.0F && move_direction.y == 0.0F)
-            // {
-            //    std::println("no movement");
-            // }
-
-            if (move_direction.x == 0.0F)
-            {
-               // std::println("only vertical");
-               general_dir = move_direction.y < 0 ? general_direction::up : general_direction::down;
-            }
-            else if (move_direction.y == 0.0F)
-            {
-               // std::println("only horizontal");
-               general_dir = move_direction.x < 0 ? general_direction::left : general_direction::right;
-            }
-            else if (move_direction.x < 0)
-            {
-               general_dir = move_direction.y < 0 ? general_direction::up_left : general_direction::down_left;
-            }
-            else // moving right
-            {
-               general_dir = move_direction.y < 0 ? general_direction::up_right : general_direction::down_right;
-            }
-
-            enum class collision_side : std::uint8_t
-            {
-               right,
-               top,
-               left,
-               bottom,
-            };
-
-            auto process_diagonal_direction = [&] (general_direction direction) -> collision_side
-            {
-               // std::println("diag calc");
-               jrag::math::vector2 dynamic_corner {0.0F, 0.0F};
-               jrag::math::vector2 static_corner {0.0F, 0.0F};
-
-               auto dynamic_rect {collider.get_bounding_rect()};
-               dynamic_rect.set_center(collider.get_old_center());
-
-               auto const static_rect {other_collider.get_bounding_rect()};
-               
-               switch (direction)
-               {
-                  using enum general_direction;
-                  case up_right:
-                     dynamic_corner = {dynamic_rect.right(), dynamic_rect.top()};
-                     static_corner = {static_rect.left(), static_rect.bottom()};
-                     break;
-                  
-                  case up_left:
-                     dynamic_corner = {dynamic_rect.left(), dynamic_rect.top()};
-                     static_corner = {static_rect.right(), static_rect.bottom()};
-                     break;
-                  
-                  case down_left:
-                     dynamic_corner = {dynamic_rect.left(), dynamic_rect.bottom()};
-                     static_corner = {static_rect.right(), static_rect.top()};
-                     break;
-                  
-                  case down_right:
-                     dynamic_corner = {dynamic_rect.right(), dynamic_rect.bottom()};
-                     static_corner = {static_rect.left(), static_rect.top()};
-                     break;
-                  
-                  default:
-                     break;
-               }
-
-               auto const corner_direction {normalize_vector(static_corner - dynamic_corner)};
-
-               auto side = collision_side::right;
-
-               if (direction == general_direction::up_right)
-               {
-                  if (dynamic_corner.x > static_corner.x)
-                  {
-                     side = collision_side::top;
-                  }
-                  else if (dynamic_corner.y < static_corner.y)
-                  {
-                     side = collision_side::right;
-                  }
-                  else
-                  {
-                     side = move_direction.x > corner_direction.x ? collision_side::top : collision_side::right;
-                  }
-               }
-               else if (direction == general_direction::up_left)
-               {
-                  if (dynamic_corner.x < static_corner.x)
-                  {
-                     side = collision_side::top;
-                  }
-                  else if (dynamic_corner.y < static_corner.y)
-                  {
-                     side = collision_side::left;
-                  }
-                  else
-                  {
-                     side = move_direction.x < corner_direction.x ? collision_side::top : collision_side::left;
-                  }
-               }
-               else if (direction == general_direction::down_left)
-               {
-                  if (dynamic_corner.x < static_corner.x)
-                  {
-                     side = collision_side::bottom;
-                  }
-                  else if (dynamic_corner.y > static_corner.y)
-                  {
-                     side = collision_side::left;
-                  }
-                  else
-                  {
-                     side = move_direction.x < corner_direction.x ? collision_side::bottom : collision_side::left;
-                  }
-                  
-               }
-               else //down-right
-               {
-                  if (dynamic_corner.x > static_corner.x)
-                  {
-                     side = collision_side::bottom;
-                  }
-                  else if (dynamic_corner.y > static_corner.y)
-                  {
-                     side = collision_side::right;
-                  }
-                  else
-                  {
-                     side = move_direction.x > corner_direction.x ? collision_side::bottom : collision_side::right;
-                  }
-                  
-               }
-               
-               return side;
-            };
-
-            auto side {collision_side::right};
-
-            switch (general_dir)
-            {
-               case general_direction::right:
-                  side = collision_side::right;
-                  break;
-
-               case general_direction::up:
-                  side = collision_side::top;
-                  break;
-               
-               case general_direction::left:
-                  side = collision_side::left;
-                  break;
-               
-               case general_direction::down:
-                  side = collision_side::bottom;
-                  break;
-               
-               default:
-                  side = process_diagonal_direction(general_dir);
-                  break;
-            };
-
-            auto const other_rect {other_collider.get_bounding_rect()};
-
-            switch (side)
-            {
-               using enum collision_side;
-               case right:
-                  collider.set_center({other_rect.left() - (collider.get_size().x / 2), collider.get_center().y});
-                  break;
-
-               case top:
-                  std::println("push down");
-                  collider.set_center({collider.get_center().x , other_rect.bottom() + (collider.get_size().y / 2)});
-                  break;
-               
-               case left:
-                  collider.set_center({other_rect.right() + (collider.get_size().x / 2), collider.get_center().y});
-                  break;
-
-               case bottom:
-                  std::println("push up");
-                  collider.set_center({collider.get_center().x , other_rect.top() - (collider.get_size().y / 2)});
-                  break;
-            }
-            
-            // auto const collision_vector {collider.get_center() - collider.get_old_center()};
-            // TODO: We can figure out what side of the other_collider was hit first based on the collision vector.
-            // e.g: if collision_vector is up, then we hit the other_collider from the bottom.
-            // In the case of diagonal vectors, then we can figure out if the vertical or horizontal side was
-            // hit first based on the collision_vector direction compared to the direction between the colliders' corners
-
-
-            // auto const center {collider.get_bounding_rect().center()};
-            // auto const other_center {other_collider.get_bounding_rect().center()};
-
-            // auto const center_vec {center - other_center};
-            // if ()
-
-            // TODO: keep track of old position to know where to correct position if a collision happens
-            // TODO: create an enum for type of collider such as static (fixed in place) or dynamic (movable)
-            // for now only the player will be dynamic, walls will be static, and everything else is just an area.
-            // auto const right_edge {other_collider.get_bounding_rect().right()};
-            // collider.set_center({right_edge + (collider.get_size().x / 2), collider.get_center().y});
+            collisions.emplace_back(collider, other_collider, *intersection);
          }
+      }
+   }
+
+   std::ranges::sort(collisions, [] (collision_data const & collision_a, collision_data const & collision_b) -> bool
+   {
+      return collision_a.collision_rect.get_area() > collision_b.collision_rect.get_area();
+   });
+
+   for (auto const & collision : collisions)
+   {
+      auto & collider_a {collision.collider_a.get()};
+      auto & collider_b {collision.collider_b.get()};
+      auto const potential_collision {collider_a.get_bounding_rect().get_intersection(collider_b.get_bounding_rect())};
+
+      if (!potential_collision.has_value()) { continue; } // no longer colliding
+
+      auto const collision_rect {*potential_collision};
+
+      // TODO: Handle case where needle collider is wedged into another collider (would result in wrong selection of resolve dimension e.g.: horizontal collision would be resolve vertically)
+
+      if (collision_rect.size.x < collision_rect.size.y)
+      {
+         // Resolve across x-axis since it collides less
+         auto const x_resolve {collider_a.get_bounding_rect().center().x > collider_b.get_bounding_rect().center().x ? collision_rect.size.x : -collision_rect.size.x};
+         collider_a.set_center(collider_a.get_center() + jrag::math::vector2{x_resolve, 0.0F});
+      }
+      else
+      {
+         // Resolve across y-axis since it collides less
+         auto const y_resolve {collider_a.get_bounding_rect().center().y > collider_b.get_bounding_rect().center().y ? collision_rect.size.y : -collision_rect.size.y};
+         collider_a.set_center(collider_a.get_center() + jrag::math::vector2{0.0F, y_resolve});
       }
    }
 }

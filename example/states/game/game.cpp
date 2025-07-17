@@ -130,7 +130,7 @@ game::game()
    , m_pause_state{}
    , m_entities{}
    , m_world{}
-{
+{  
    m_world.create_collider(player_collider_id, {50.0F, 50.0F}, {50.0F, 50.0F});
    m_world.create_collider(medkit_collider_id, {200.0F, 200.0F}, {50.0F, 50.0F});
 
@@ -151,7 +151,7 @@ game::game()
       }
 
       position.x = 0.0F;
-      position.y += size.y + 25.0F;
+      position.y += size.y;
    }
 
    auto const & m_player {m_world.get_collider(player_collider_id)};

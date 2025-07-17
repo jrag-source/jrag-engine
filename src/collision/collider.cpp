@@ -3,25 +3,18 @@
 using collider = jrag::collision::collider;
 
 collider::collider(vector2<float> center, vector2<float> size)
-   : m_old_center {center}
-   , m_center {center}
+   : m_center {center}
    , m_size {size}
 {}
 
 auto collider::set_center(vector2<float> new_center) -> void
 {
-   m_old_center = m_center;
    m_center = new_center;
 }
 
 auto collider::set_size(vector2<float> new_size) -> void
 {
    m_size = new_size;
-}
-
-auto collider::get_old_center() const -> vector2<float>
-{
-   return m_old_center;
 }
 
 auto collider::get_center() const -> vector2<float>

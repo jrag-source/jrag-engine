@@ -16,7 +16,6 @@ namespace jrag::collision
          auto set_center(vector2<float> new_center) -> void;
          auto set_size(vector2<float> new_size) -> void;
 
-         [[nodiscard]] auto get_old_center() const -> vector2<float>;
          [[nodiscard]] auto get_center() const -> vector2<float>;
          [[nodiscard]] auto get_size() const -> vector2<float>;
 
@@ -24,8 +23,7 @@ namespace jrag::collision
          [[nodiscard]] auto is_intersecting(collider const & other) const -> bool;
 
       private:
-         vector2<float> m_old_center;
-         vector2<float> m_center{0.0F, 0.0F}; // center point
+         vector2<float> m_center{0.0F, 0.0F};
          vector2<float> m_size{0.0F, 0.0F};
    };
 }
