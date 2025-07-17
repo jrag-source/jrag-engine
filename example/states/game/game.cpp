@@ -131,8 +131,8 @@ game::game()
    , m_entities{}
    , m_world{}
 {  
-   m_world.create_collider(player_collider_id, {50.0F, 50.0F}, {50.0F, 50.0F});
-   m_world.create_collider(medkit_collider_id, {200.0F, 200.0F}, {50.0F, 50.0F});
+   m_world.create_moving_collider(player_collider_id, {50.0F, 50.0F}, {50.0F, 50.0F});
+   m_world.create_moving_collider(medkit_collider_id, {200.0F, 200.0F}, {50.0F, 50.0F});
 
    jrag::math::vector2 position{0.0F, 0.0F};
    jrag::math::vector2 const size{50.0F, 50.0F};
@@ -144,7 +144,7 @@ game::game()
          if (tile == tile_type::wall)
          {  
             m_entities.emplace_back(get_uuid());
-            m_world.create_collider(m_entities.back(), position, size);
+            m_world.create_stationary_collider(m_entities.back(), position, size);
          }
 
          position.x += size.x;

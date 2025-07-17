@@ -3,6 +3,8 @@
 #include <math/rect.hpp>
 #include <math/vector2.hpp>
 
+#include <optional>
+
 namespace jrag::collision
 {
    class collider
@@ -15,11 +17,13 @@ namespace jrag::collision
 
          auto set_center(vector2<float> new_center) -> void;
          auto set_size(vector2<float> new_size) -> void;
+         auto move(vector2<float> move_vector) -> void;
 
          [[nodiscard]] auto get_center() const -> vector2<float>;
          [[nodiscard]] auto get_size() const -> vector2<float>;
 
          [[nodiscard]] auto get_bounding_rect() const -> jrag::math::rect<float>;
+         [[nodiscard]] auto get_intersection(collider const & other) const -> std::optional<jrag::math::rect<float>>;
          [[nodiscard]] auto is_intersecting(collider const & other) const -> bool;
 
       private:

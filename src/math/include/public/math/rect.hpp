@@ -54,6 +54,11 @@ namespace jrag::math
         [[nodiscard]] constexpr auto is_intersecting(rect<NumType> const other) const -> bool
         {
             return get_intersection(other).has_value();
-        } 
+        }
+
+        [[nodiscard]] constexpr auto operator==(rect<NumType> const other) const -> bool
+        {
+            return position == other.position && size == other.size;
+        }
     };
 }

@@ -84,4 +84,16 @@ namespace jrag::math
       vec = vec / scalar;
       return vec;
    }
+
+   template<typename NumType>
+   constexpr auto operator==(vector2<NumType> const lhs, vector2<NumType> const rhs) -> bool
+   {
+      return lhs.x == rhs.x && lhs.y == rhs.y;
+   }
+
+   template<typename NumType>
+   constexpr auto operator-(vector2<NumType> const vec)
+   {
+      return vector2<NumType>{-vec.x, -vec.y};
+   }
 }

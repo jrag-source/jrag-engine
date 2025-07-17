@@ -17,6 +17,11 @@ auto collider::set_size(vector2<float> new_size) -> void
    m_size = new_size;
 }
 
+auto collider::move(vector2<float> const move_vector) -> void
+{
+   m_center += move_vector;
+}
+
 auto collider::get_center() const -> vector2<float>
 {
    return m_center;
@@ -33,6 +38,11 @@ auto collider::get_bounding_rect() const -> jrag::math::rect<float>
    auto const top {m_center.y - (m_size.y / 2)};
 
    return {{left, top}, m_size};
+}
+
+auto collider::get_intersection(collider const & other) const -> std::optional<jrag::math::rect<float>>
+{
+   return get_bounding_rect().get_intersection(other.get_bounding_rect());
 }
 
 auto collider::is_intersecting(collider const & other) const -> bool
